@@ -124,4 +124,4 @@ User Browser
 ---
 ## Architecture Diagram 
 
- screenshot/ARCHITECHTURE.png
+![Architecture](./screenshot/ARCHITECTURE.png)
