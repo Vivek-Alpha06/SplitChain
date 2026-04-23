@@ -93,7 +93,7 @@ Here are some pictures of the application in action:
 
 
 ## User Feedback
-[View User Feedback Document](## User Feedback https://docs.google.com/spreadsheets/d/1OMYjcd8Y0lauWaKeTjOgADurKiF3ZbT3bYKGB098dsw/edit?usp=sharing )
+[View User Feedback Document]( User Feedback https://docs.google.com/spreadsheets/d/1OMYjcd8Y0lauWaKeTjOgADurKiF3ZbT3bYKGB098dsw/edit?usp=sharing )
 
  You can also give feedback(https://docs.google.com/forms/d/e/1FAIpQLScnOGWNPACmkkS-cTpr_IesBMRGntLLBYkIXqzz7M3O60Im8Q/viewform?usp=header).
 
