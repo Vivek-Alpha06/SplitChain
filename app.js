@@ -1,7 +1,12 @@
 const { useState, useEffect, useRef } = React;
 
 // ==========================================
-// 1. FIREBASE CONFIGURATION (SAFE LOAD)
+// 1. SMART CONTRACT CONFIG
+// ==========================================
+const SOROBAN_CONTRACT_ID = 'CAXE4NUE3NXTKLOWOW5EXUTFL22LUKAFYG6RFKWOYFSRKVYGJHYYQSW5';
+
+// ==========================================
+// 2. FIREBASE CONFIGURATION (SAFE LOAD)
 // ==========================================
 const firebaseConfig = {
   apiKey: "AIzaSyByP5iZGDCbkjyL9p_Idjmoz6T8EZKlX8c",
@@ -17,24 +22,12 @@ let db = null;
 try {
   if (typeof window !== 'undefined' && window.firebase) {
     if (!window.firebase.apps.length) window.firebase.initializeApp(firebaseConfig);
-    if (window.firebase.auth) {
-      auth = window.firebase.auth();
-      auth.setPersistence(window.firebase.auth.Auth.Persistence.SESSION).catch(console.error);
-    }
+    if (window.firebase.auth) auth = window.firebase.auth();
     if (window.firebase.firestore) db = window.firebase.firestore();
   }
 } catch (error) {
   console.error("Firebase Init Error:", error);
 }
-
-// ==========================================
-// SMART CONTRACT CONFIGURATION
-// ==========================================
-const contractConfig = {
-    contractId: "CDUBDXSXLXYG33GGZPBMFJAHIXYI2KFHSTDBHQAY4P5GPTSLJFNQUMEP",
-    rpcUrl: "https://soroban-testnet.stellar.org",
-    networkPassphrase: "Test SDF Network ; September 2015"
-};
 
 // ==========================================
 // 2. ERROR BOUNDARY
@@ -51,7 +44,7 @@ class ErrorBoundary extends React.Component {
           </div>
           <h2 className="text-2xl font-bold mb-2">Something went wrong!</h2>
           <p className="text-sm text-slate-400 mb-6 bg-black/50 p-4 rounded-xl font-mono border border-red-500/30">{this.state.errorMsg}</p>
-          <button onClick={() => { sessionStorage.clear(); window.location.reload(); }} className="bg-blue-600 px-6 py-3 rounded-xl font-bold">Clear Data & Restart App</button>
+          <button onClick={() => { localStorage.clear(); sessionStorage.clear(); window.location.reload(); }} className="bg-blue-600 px-6 py-3 rounded-xl font-bold">Clear Data & Restart App</button>
         </div>
       );
     }
@@ -100,7 +93,7 @@ const AuthScreen = ({ onBack, onLoginSuccess }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState(''); 
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
   const [status, setStatus] = useState('');
 
@@ -109,9 +102,10 @@ const AuthScreen = ({ onBack, onLoginSuccess }) => {
     if (!email || !password) return alert("Fill all fields");
     if (!isLogin && password !== confirmPassword) return alert("Passwords do not match!");
     if (!auth || !db) return alert("Firebase connecting... Please check your internet.");
-    
+
     setStatus('Processing...');
     try {
+      await auth.setPersistence(window.firebase.auth.Auth.Persistence.SESSION);
       if (isLogin) {
         await auth.signInWithEmailAndPassword(email, password);
       } else {
@@ -126,7 +120,7 @@ const AuthScreen = ({ onBack, onLoginSuccess }) => {
   const handleResetPassword = async () => {
     if (!email) return alert("Please enter your email address first.");
     if (!auth) return;
-    try { await auth.sendPasswordResetEmail(email); alert("Password reset link sent to your email!"); } 
+    try { await auth.sendPasswordResetEmail(email); alert("Password reset link sent to your email!"); }
     catch (e) { alert(e.message); }
   };
 
@@ -136,19 +130,19 @@ const AuthScreen = ({ onBack, onLoginSuccess }) => {
         <button onClick={onBack} className="absolute top-6 right-6 text-slate-400 hover:text-white hover:scale-110 transition-transform">
           <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
         </button>
-        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#1e293b] to-[#0f172a] border border-white/10 flex items-center justify-center font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 mx-auto mb-6 shadow-inner">SX</div>
+        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#1e293b] to-[#0f172a] border border-white/10 flex items-center justify-center font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 mx-auto mb-6 shadow-inner">SC</div>
         <h2 className="text-2xl font-black text-center mb-2">{isLogin ? 'Welcome Back' : 'Create Account'}</h2>
         <p className="text-slate-400 text-center text-sm mb-8">{isLogin ? 'Login to access your Web3 splits.' : 'Sign up to start sharing expenses.'}</p>
-        
+
         <form onSubmit={handleAuth} className="space-y-4">
-          {!isLogin && <input value={name} onChange={e=>setName(e.target.value)} type="text" placeholder="Full Name" className="w-full bg-[#0a0f1c] border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-blue-500 outline-none" />}
-          <input value={email} onChange={e=>setEmail(e.target.value)} type="email" placeholder="Email Address" className="w-full bg-[#0a0f1c] border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-blue-500 outline-none" required />
-          <input value={password} onChange={e=>setPassword(e.target.value)} type="password" placeholder="Password" className="w-full bg-[#0a0f1c] border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-blue-500 outline-none" required />
-          {!isLogin && <input value={confirmPassword} onChange={e=>setConfirmPassword(e.target.value)} type="password" placeholder="Confirm Password" className="w-full bg-[#0a0f1c] border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-blue-500 outline-none" required />}
+          {!isLogin && <input value={name} onChange={e => setName(e.target.value)} type="text" placeholder="Full Name" className="w-full bg-[#0a0f1c] border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-blue-500 outline-none" />}
+          <input value={email} onChange={e => setEmail(e.target.value)} type="email" placeholder="Email Address" className="w-full bg-[#0a0f1c] border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-blue-500 outline-none" required />
+          <input value={password} onChange={e => setPassword(e.target.value)} type="password" placeholder="Password" className="w-full bg-[#0a0f1c] border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-blue-500 outline-none" required />
+          {!isLogin && <input value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} type="password" placeholder="Confirm Password" className="w-full bg-[#0a0f1c] border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-blue-500 outline-none" required />}
           {isLogin && <p className="text-right text-xs text-blue-400 cursor-pointer hover:text-blue-300" onClick={handleResetPassword}>Forgot Password?</p>}
           <button type="submit" disabled={!!status} className="w-full py-4 rounded-2xl font-black text-white bg-blue-600 hover:bg-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.3)] transition-all active:scale-95">{status || (isLogin ? 'Login' : 'Sign Up')}</button>
         </form>
-        
+
         <p className="text-center text-sm text-slate-400 mt-6 cursor-pointer" onClick={() => setIsLogin(!isLogin)}>
           {isLogin ? "Don't have an account? " : "Already have an account? "}
           <span className="text-blue-400 font-bold">{isLogin ? 'Sign Up' : 'Login'}</span>
@@ -169,7 +163,7 @@ const ProfileModal = ({ isOpen, onClose, userProfile, onUpdateProfile, onLogout 
 
   const handleResetPassword = async () => {
     if (!auth || !userProfile?.email) return;
-    try { await auth.sendPasswordResetEmail(userProfile.email); alert("Password reset link sent to your email!"); } 
+    try { await auth.sendPasswordResetEmail(userProfile.email); alert("Password reset link sent to your email!"); }
     catch (e) { alert(e.message); }
   };
 
@@ -198,21 +192,21 @@ const ProfileModal = ({ isOpen, onClose, userProfile, onUpdateProfile, onLogout 
           <p className="text-sm text-slate-400 font-medium">{userProfile.email}</p>
         </div>
         <div className="space-y-4 mb-6">
-          <div><label className="text-[10px] text-blue-400 font-bold uppercase mb-1 ml-1 block">Full Name</label><input value={name} onChange={e=>setName(e.target.value)} placeholder="Name" className="w-full bg-[#0a0f1c] border border-white/10 rounded-xl px-4 py-3 text-sm outline-none focus:border-blue-500" /></div>
+          <div><label className="text-[10px] text-blue-400 font-bold uppercase mb-1 ml-1 block">Full Name</label><input value={name} onChange={e => setName(e.target.value)} placeholder="Name" className="w-full bg-[#0a0f1c] border border-white/10 rounded-xl px-4 py-3 text-sm outline-none focus:border-blue-500" /></div>
           <div><label className="text-[10px] text-blue-400 font-bold uppercase mb-1 ml-1 block">Gender</label>
-            <select value={gender} onChange={e=>setGender(e.target.value)} className="w-full bg-[#0a0f1c] border border-white/10 rounded-xl px-4 py-3 text-sm outline-none text-slate-300 appearance-none focus:border-blue-500">
+            <select value={gender} onChange={e => setGender(e.target.value)} className="w-full bg-[#0a0f1c] border border-white/10 rounded-xl px-4 py-3 text-sm outline-none text-slate-300 appearance-none focus:border-blue-500">
               <option value="">Select Gender</option><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option>
             </select>
           </div>
         </div>
-        
+
         <div className="space-y-3 mb-6">
           <button onClick={handleResetPassword} className="w-full text-sm text-blue-400 font-bold py-2 border border-blue-500/20 rounded-xl hover:bg-blue-500/10 transition-all">Send Password Reset Link</button>
           <button onClick={handleDeleteAccount} className="w-full text-sm text-red-500 font-bold py-2 border border-red-500/20 rounded-xl hover:bg-red-500/10 transition-all">Delete Account</button>
         </div>
 
         <div className="flex gap-3">
-          <button onClick={() => { onUpdateProfile({...userProfile, name, gender}); onClose(); }} className="flex-[2] bg-blue-600 py-3 rounded-xl font-bold active:scale-95 shadow-[0_0_20px_rgba(59,130,246,0.3)]">Save Changes</button>
+          <button onClick={() => { onUpdateProfile({ ...userProfile, name, gender }); onClose(); }} className="flex-[2] bg-blue-600 py-3 rounded-xl font-bold active:scale-95 shadow-[0_0_20px_rgba(59,130,246,0.3)]">Save Changes</button>
           <button onClick={onLogout} className="flex-1 bg-slate-800 text-white border border-white/10 py-3 rounded-xl font-bold active:scale-95 hover:bg-slate-700">Logout</button>
         </div>
       </div>
@@ -244,11 +238,11 @@ const SwapModal = ({ isOpen, onClose }) => {
         </button>
         <h3 className="text-xl font-bold mb-2">Swap Assets</h3>
         <p className="text-xs text-slate-400 mb-6">Trade tokens instantly via Stellar DEX.</p>
-        
+
         <div className="bg-[#0a0f1c] p-4 rounded-2xl border border-white/10 mb-2">
           <p className="text-[10px] text-slate-400 font-bold uppercase mb-1">You Pay</p>
           <div className="flex justify-between items-center">
-            <input type="number" value={amount} onChange={e=>setAmount(e.target.value)} disabled={isSwapping} className="bg-transparent text-2xl font-black outline-none w-1/2" placeholder="0.00" />
+            <input type="number" value={amount} onChange={e => setAmount(e.target.value)} disabled={isSwapping} className="bg-transparent text-2xl font-black outline-none w-1/2" placeholder="0.00" />
             <span className="bg-white/10 px-3 py-1 rounded-lg font-bold text-sm">XLM</span>
           </div>
         </div>
@@ -290,9 +284,9 @@ const NewSplitModal = ({ isOpen, onClose, onSplitCreated }) => {
     if (!billName || !totalAmount || friends.some(f => !f.address)) return alert("Fill all fields.");
     const invalidFriends = friends.filter(f => f.address.trim().length !== 56 || !f.address.trim().toUpperCase().startsWith('G'));
     if (invalidFriends.length > 0) return alert("Invalid Address found! (Must be 56 chars starting with G)");
-    
-    const pubKey = sessionStorage.getItem('splitx_full_key') || ''; 
-    const shareAmt = parseFloat(totalAmount) / (friends.length + 1);
+
+    const pubKey = sessionStorage.getItem('splitchain_full_key') || '';
+    const shareAmt = Math.round((parseFloat(totalAmount) / (friends.length + 1)) * 10000000) / 10000000;
 
     const splitData = {
       id: Date.now().toString(),
@@ -300,6 +294,7 @@ const NewSplitModal = ({ isOpen, onClose, onSplitCreated }) => {
       total: parseFloat(totalAmount),
       share: shareAmt,
       friends: friends.map(f => ({ name: f.name.trim(), address: f.address.trim().toUpperCase(), hasPaid: false, txHash: null })),
+      participantAddresses: friends.map(f => f.address.trim().toUpperCase()),
       timestamp: Date.now(),
       creator: pubKey.trim().toUpperCase(),
       settled: false,
@@ -321,8 +316,8 @@ const NewSplitModal = ({ isOpen, onClose, onSplitCreated }) => {
         <p className="text-slate-400 text-xs sm:text-sm mb-6">Divide expenses with friends on-chain.</p>
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
-            <div><label className="text-[10px] text-blue-400 font-bold uppercase mb-1 block">Bill Name</label><input value={billName} onChange={e=>setBillName(e.target.value)} className="w-full bg-[#0a0f1c] border border-white/10 rounded-xl px-3 py-3 text-sm outline-none focus:border-blue-500" placeholder="e.g. Dinner" /></div>
-            <div><label className="text-[10px] text-blue-400 font-bold uppercase mb-1 block">Total (XLM)</label><input type="number" value={totalAmount} onChange={e=>setTotalAmount(e.target.value)} className="w-full bg-[#0a0f1c] border border-white/10 rounded-xl px-3 py-3 text-sm outline-none focus:border-blue-500" placeholder="0.00" /></div>
+            <div><label className="text-[10px] text-blue-400 font-bold uppercase mb-1 block">Bill Name</label><input value={billName} onChange={e => setBillName(e.target.value)} className="w-full bg-[#0a0f1c] border border-white/10 rounded-xl px-3 py-3 text-sm outline-none focus:border-blue-500" placeholder="e.g. Dinner" /></div>
+            <div><label className="text-[10px] text-blue-400 font-bold uppercase mb-1 block">Total (XLM)</label><input type="number" value={totalAmount} onChange={e => setTotalAmount(e.target.value)} className="w-full bg-[#0a0f1c] border border-white/10 rounded-xl px-3 py-3 text-sm outline-none focus:border-blue-500" placeholder="0.00" /></div>
           </div>
 
           {/* Mandatory Soroban Active Badge */}
@@ -332,7 +327,7 @@ const NewSplitModal = ({ isOpen, onClose, onSplitCreated }) => {
               <p className="text-[9px] text-slate-400 mt-0.5">Mandatory trustless escrow enabled.</p>
             </div>
             <div className="bg-purple-600/20 text-purple-400 px-2 py-1 rounded text-[10px] font-bold border border-purple-500/30">
-               ACTIVE
+              ACTIVE
             </div>
           </div>
 
@@ -341,15 +336,15 @@ const NewSplitModal = ({ isOpen, onClose, onSplitCreated }) => {
             <div className="space-y-2">
               {friends.map((f, i) => (
                 <div key={i} className="flex gap-2 items-center">
-                  <input value={f.name} onChange={e=>{const nf=[...friends]; nf[i].name=e.target.value; setFriends(nf);}} className="flex-1 min-w-0 bg-[#0a0f1c] border border-white/10 rounded-lg px-3 py-2.5 text-xs outline-none focus:border-blue-500" placeholder="Name" />
-                  <input value={f.address} onChange={e=>{const nf=[...friends]; nf[i].address=e.target.value; setFriends(nf);}} className="flex-[2] min-w-0 bg-[#0a0f1c] border border-white/10 rounded-lg px-3 py-2.5 text-xs outline-none focus:border-blue-500" placeholder="Address (G...)" />
-                  {friends.length>1 && <button onClick={()=>removeFriendField(i)} className="w-8 h-8 rounded-lg bg-red-500/10 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-colors"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg></button>}
+                  <input value={f.name} onChange={e => { const nf = [...friends]; nf[i].name = e.target.value; setFriends(nf); }} className="flex-1 min-w-0 bg-[#0a0f1c] border border-white/10 rounded-lg px-3 py-2.5 text-xs outline-none focus:border-blue-500" placeholder="Name" />
+                  <input value={f.address} onChange={e => { const nf = [...friends]; nf[i].address = e.target.value; setFriends(nf); }} className="flex-[2] min-w-0 bg-[#0a0f1c] border border-white/10 rounded-lg px-3 py-2.5 text-xs outline-none focus:border-blue-500" placeholder="Address (G...)" />
+                  {friends.length > 1 && <button onClick={() => removeFriendField(i)} className="w-8 h-8 rounded-lg bg-red-500/10 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-colors"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg></button>}
                 </div>
               ))}
             </div>
           </div>
           <div className="pt-4 border-t border-white/10 flex justify-between items-center">
-            <div><p className="text-[10px] text-slate-500 font-bold">Per Person</p><p className="text-xl font-black">{totalAmount?(parseFloat(totalAmount)/(friends.length+1)).toFixed(2):'0.00'} <span className="text-[10px] font-normal text-slate-400">XLM</span></p></div>
+            <div><p className="text-[10px] text-slate-500 font-bold">Per Person</p><p className="text-xl font-black">{totalAmount ? (parseFloat(totalAmount) / (friends.length + 1)).toFixed(2) : '0.00'} <span className="text-[10px] font-normal text-slate-400">XLM</span></p></div>
             <button onClick={handleCreate} className="bg-blue-600 hover:bg-blue-500 px-6 py-2.5 rounded-xl font-black text-sm active:scale-95 shadow-[0_0_20px_rgba(59,130,246,0.3)]">Confirm</button>
           </div>
         </div>
@@ -365,55 +360,55 @@ const SendModal = ({ isOpen, onClose, network, prefillData, onPaymentSuccess }) 
 
   useEffect(() => {
     if (isOpen) {
-      if (prefillData) { setAddress(prefillData.address||''); setAmount(prefillData.amount||''); } 
+      if (prefillData) { setAddress(prefillData.address || ''); setAmount(prefillData.amount || ''); }
       else { setAddress(''); setAmount(''); }
       setStatus('idle');
     }
-  }, [isOpen, prefillData]); 
+  }, [isOpen, prefillData]);
 
   const handleSend = async () => {
     if (!address || !amount) return alert("Fill all fields");
     const cleanAddress = address.trim().toUpperCase();
     if (cleanAddress.length !== 56 || !cleanAddress.startsWith('G')) return alert("Invalid Address!");
 
-    let formattedAmount = Number(amount).toFixed(7).replace(/0+$/, '').replace(/\.$/, '');
-    if (formattedAmount === "" || formattedAmount === "0") return alert("Amount must be greater than 0");
-
     setStatus('sending');
-    // Yield execution so the 'sending' UI state instantly renders
-    await new Promise(resolve => setTimeout(resolve, 50));
-
     try {
-      const provider = sessionStorage.getItem('splitx_wallet_provider');
-      let pubKey = sessionStorage.getItem('splitx_full_key'); 
+      const provider = sessionStorage.getItem('splitchain_wallet_provider');
+      let pubKey = sessionStorage.getItem('splitchain_full_key');
       let generatedTxHash = "MOCK_HASH_" + Math.random().toString(36).substring(7).toUpperCase();
 
       if (provider === 'albedo') {
-        const res = await window.albedo.pay({ amount: formattedAmount, destination: cleanAddress, network, submit: true });
-        generatedTxHash = res.tx_hash || generatedTxHash; 
+        const res = await window.albedo.pay({ amount, destination: cleanAddress, network, submit: true });
+        generatedTxHash = res.tx_hash || generatedTxHash;
       } else {
         const api = window.freighterApi;
         if (!window.StellarSdk) throw new Error("Stellar SDK missing");
+        try { if (typeof api.requestAccess === 'function') await api.requestAccess(); } catch (e) { }
+        const freshKeyRes = await api.getPublicKey();
+        if (typeof freshKeyRes === 'object' ? (freshKeyRes.publicKey || freshKeyRes.address) : freshKeyRes) {
+          pubKey = typeof freshKeyRes === 'object' ? (freshKeyRes.publicKey || freshKeyRes.address) : freshKeyRes;
+        }
 
         const server = new window.StellarSdk.Server(network === 'mainnet' ? 'https://horizon.stellar.org' : 'https://horizon-testnet.stellar.org');
         const account = await server.loadAccount(pubKey);
+        const cleanAmount = parseFloat(amount).toFixed(7).replace(/\.?0+$/, '');
         const tx = new window.StellarSdk.TransactionBuilder(account, { fee: "10000", networkPassphrase: network === 'mainnet' ? window.StellarSdk.Networks.PUBLIC : window.StellarSdk.Networks.TESTNET })
-        .addOperation(window.StellarSdk.Operation.payment({ destination: cleanAddress, asset: window.StellarSdk.Asset.native(), amount: formattedAmount }))
-        .setTimeout(300).build();
-        
+          .addOperation(window.StellarSdk.Operation.payment({ destination: cleanAddress, asset: window.StellarSdk.Asset.native(), amount: cleanAmount }))
+          .setTimeout(300).build();
+
         const signedXdr = await api.signTransaction(tx.toXDR(), { network: network === 'mainnet' ? 'PUBLIC' : 'TESTNET' });
         const signedTx = window.StellarSdk.TransactionBuilder.fromXDR(signedXdr, network === 'mainnet' ? window.StellarSdk.Networks.PUBLIC : window.StellarSdk.Networks.TESTNET);
         const submitRes = await server.submitTransaction(signedTx);
-        generatedTxHash = submitRes.hash; 
+        generatedTxHash = submitRes.hash;
       }
-      
+
       setStatus('success');
-      if(onPaymentSuccess) onPaymentSuccess(generatedTxHash);
+      if (onPaymentSuccess) onPaymentSuccess(generatedTxHash);
       setTimeout(() => { onClose(); setStatus('idle'); setAddress(''); setAmount(''); }, 2000);
-    } catch (e) { 
-      setStatus('error'); 
+    } catch (e) {
+      setStatus('error');
       alert("Payment Failed! \n" + (e.message || "Network rejected."));
-      setTimeout(() => setStatus('idle'), 3000); 
+      setTimeout(() => setStatus('idle'), 3000);
     }
   };
 
@@ -426,11 +421,11 @@ const SendModal = ({ isOpen, onClose, network, prefillData, onPaymentSuccess }) 
         </button>
         <h3 className="text-xl font-bold mb-4">Send XLM</h3>
         <div className="space-y-4">
-          <input value={address} onChange={e=>setAddress(e.target.value)} readOnly={!!prefillData} className={`w-full bg-[#0a0f1c] border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-blue-500 ${prefillData?'opacity-60 cursor-not-allowed':''}`} placeholder="Recipient Address" />
-          <input type="number" value={amount} onChange={e=>setAmount(e.target.value)} readOnly={!!prefillData} className={`w-full bg-[#0a0f1c] border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-blue-500 ${prefillData?'opacity-60 cursor-not-allowed':''}`} placeholder="Amount (XLM)" />
-          
-          <button onClick={handleSend} disabled={status==='sending'} className={`w-full py-4 rounded-2xl font-black text-lg transition-all active:scale-95 ${status==='sending'?'bg-slate-700 animate-pulse':status==='success'?'bg-green-600':status==='error'?'bg-red-500':'bg-blue-600 shadow-[0_0_20px_rgba(59,130,246,0.3)]'}`}>
-            {status==='sending' ? 'Invoking Contract ⚙️...' : status==='success' ? 'Sent! ✅' : status==='error' ? 'Failed ❌' : 'Confirm Payment'}
+          <input value={address} onChange={e => setAddress(e.target.value)} readOnly={!!prefillData} className={`w-full bg-[#0a0f1c] border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-blue-500 ${prefillData ? 'opacity-60 cursor-not-allowed' : ''}`} placeholder="Recipient Address" />
+          <input type="number" value={amount} onChange={e => setAmount(e.target.value)} readOnly={!!prefillData} className={`w-full bg-[#0a0f1c] border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-blue-500 ${prefillData ? 'opacity-60 cursor-not-allowed' : ''}`} placeholder="Amount (XLM)" />
+
+          <button onClick={handleSend} disabled={status === 'sending'} className={`w-full py-4 rounded-2xl font-black text-lg transition-all active:scale-95 ${status === 'sending' ? 'bg-slate-700 animate-pulse' : status === 'success' ? 'bg-green-600' : status === 'error' ? 'bg-red-500' : 'bg-blue-600 shadow-[0_0_20px_rgba(59,130,246,0.3)]'}`}>
+            {status === 'sending' ? 'Invoking Contract ⚙️...' : status === 'success' ? 'Sent! ✅' : status === 'error' ? 'Failed ❌' : 'Confirm Payment'}
           </button>
         </div>
       </div>
@@ -438,65 +433,154 @@ const SendModal = ({ isOpen, onClose, network, prefillData, onPaymentSuccess }) 
   );
 };
 
-const HistoryModal = ({ isOpen, onClose, splits, currentUserKey, network }) => {
-  const [history, setHistory] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
+const ReceiveModal = ({ isOpen, onClose, currentUserKey, network }) => {
+  const [incoming, setIncoming] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (isOpen && currentUserKey) {
-      const fetchHistory = async () => {
-        setIsLoading(true);
+    if (!isOpen || !currentUserKey) return;
+    const fetchIncoming = async () => {
+      setLoading(true);
+      try {
         const baseUrl = network === 'mainnet' ? 'https://horizon.stellar.org' : 'https://horizon-testnet.stellar.org';
-        try {
-          const res = await fetch(`${baseUrl}/accounts/${currentUserKey}/payments?limit=50&order=desc`);
-          const data = await res.json();
-          // Filter to just native XLM payments
-          const payments = (data._embedded?.records || []).filter(r => r.type === 'payment' || r.type === 'create_account');
-          
-          const formattedHistory = payments.map(p => {
-             let isReceive = false;
-             let amount = '0';
-             let otherParty = '';
-             
-             if (p.type === 'create_account') {
-                isReceive = p.account === currentUserKey;
-                amount = p.starting_balance;
-                otherParty = isReceive ? p.funder : p.account;
-             } else {
-                isReceive = p.to === currentUserKey;
-                amount = p.amount;
-                otherParty = isReceive ? p.from : p.to;
-             }
-
-             // Match to split if available
-             let txName = isReceive ? "Received XLM" : "Sent XLM";
-             const matchedSplit = splits.find(s => s.friends && s.friends.some(f => f.txHash === p.transaction_hash));
-             if (matchedSplit) {
-                 if (isReceive) txName = `Split Receipt: ${matchedSplit.name}`;
-                 else txName = `Paid for ${matchedSplit.name}`;
-             }
-
-             return {
-                id: p.id,
-                hash: p.transaction_hash,
-                amount: (isReceive ? '+' : '-') + parseFloat(amount).toFixed(2),
-                isReceive,
-                name: txName,
-                otherParty: otherParty.substring(0,6) + '...' + otherParty.substring(50),
-                timestamp: new Date(p.created_at).getTime()
-             };
-          });
-          setHistory(formattedHistory);
-        } catch(e) {
-          console.error("Failed to fetch history", e);
-        }
-        setIsLoading(false);
-      };
-      fetchHistory();
-    }
-  }, [isOpen, currentUserKey, network, splits]);
+        const res = await fetch(`${baseUrl}/accounts/${currentUserKey}/payments?order=desc&limit=30`);
+        const data = await res.json();
+        const payments = data._embedded.records.filter(r => r.type === 'payment' && r.to === currentUserKey && r.asset_type === 'native');
+        setIncoming(payments);
+      } catch (e) {
+        console.error("Failed to fetch incoming txs", e);
+      }
+      setLoading(false);
+    };
+    fetchIncoming();
+  }, [isOpen, currentUserKey, network]);
 
   if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[70] flex flex-col items-center justify-center p-4 bg-[#03050a]/95 backdrop-blur-xl animate-[fadeIn_0.2s_ease-out]">
+      <div className="w-full max-w-sm premium-card rounded-3xl p-6 relative border border-green-500/30 flex flex-col max-h-[85vh]">
+        <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-white">
+          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+        </button>
+        <h3 className="text-xl font-bold mb-2 text-white">Receive XLM</h3>
+        <p className="text-xs text-slate-400 mb-6">Share your address to receive payments.</p>
+
+        <div className="bg-[#0a0f1c] p-4 rounded-xl border border-white/10 mb-6 flex flex-col items-center">
+          <p className="text-[10px] text-blue-400 font-bold uppercase mb-2">Your Address</p>
+          <div className="flex items-center gap-2 w-full">
+             <div className="bg-[#03050a] border border-white/10 p-2 rounded-lg text-xs font-mono text-slate-300 break-all w-full text-center select-all">
+                {currentUserKey}
+             </div>
+             <button onClick={() => { navigator.clipboard.writeText(currentUserKey); alert("Address Copied!"); }} className="p-2.5 bg-blue-600 hover:bg-blue-500 rounded-lg shrink-0 transition-colors shadow-[0_0_15px_rgba(59,130,246,0.4)] text-white">
+                <CopyIcon />
+             </button>
+          </div>
+        </div>
+
+        <h4 className="text-sm font-bold mb-3 text-slate-300">Recent Incoming</h4>
+        <div className="overflow-y-auto space-y-2 flex-1 pr-1 min-h-[100px]">
+          {loading ? (
+            <p className="text-center text-xs text-slate-500 py-4 animate-pulse">Loading...</p>
+          ) : incoming.length > 0 ? incoming.map((tx, idx) => (
+            <div key={idx} className="bg-[#0a0f1c] border border-white/5 rounded-xl p-3 flex justify-between items-center">
+               <div>
+                  <p className="font-bold text-xs text-slate-200">From: {tx.from.substring(0, 6)}...{tx.from.substring(tx.from.length - 4)}</p>
+                  <p className="text-[9px] text-slate-500 mt-0.5">{formatTimeAgo(new Date(tx.created_at).getTime())}</p>
+               </div>
+               <div className="text-right">
+                  <p className="font-bold text-xs text-green-400">+{parseFloat(tx.amount).toFixed(2)} XLM</p>
+               </div>
+            </div>
+          )) : (
+            <p className="text-center text-xs text-slate-500 py-4">No incoming transactions found.</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const HistoryModal = ({ isOpen, onClose, splits, currentUserKey, network }) => {
+  const [stellarTxs, setStellarTxs] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen || !currentUserKey) return;
+    const fetchTxs = async () => {
+      setLoading(true);
+      try {
+        const baseUrl = network === 'mainnet' ? 'https://horizon.stellar.org' : 'https://horizon-testnet.stellar.org';
+        const res = await fetch(`${baseUrl}/accounts/${currentUserKey}/payments?order=desc&limit=50`);
+        const data = await res.json();
+        const payments = data._embedded.records.filter(r => r.type === 'payment' && r.asset_type === 'native');
+        setStellarTxs(payments);
+      } catch (e) {
+        console.error("Failed to fetch history", e);
+      }
+      setLoading(false);
+    };
+    fetchTxs();
+  }, [isOpen, currentUserKey, network]);
+
+  if (!isOpen) return null;
+
+  const historySplits = splits.filter(s => s.friends && s.friends.some(f => f.hasPaid));
+  const displayRecordsMap = new Map();
+  const usedTxHashes = new Set();
+
+  historySplits.forEach((split) => {
+    const isCreator = (split.creator || '') === currentUserKey;
+    if (isCreator) {
+      split.friends.filter(f => f.hasPaid && f.txHash).forEach(f => {
+        if (!displayRecordsMap.has(f.txHash)) {
+          displayRecordsMap.set(f.txHash, { name: f.name || f.address.substring(0, 6) + '...', hash: f.txHash, amount: `+${split.share.toFixed(2)}`, ts: split.timestamp, isSplit: true });
+          usedTxHashes.add(f.txHash);
+        }
+      });
+    } else {
+      const myRecord = split.friends.find(f => (f.address || '').trim().toUpperCase() === currentUserKey && f.hasPaid && f.txHash);
+      if (myRecord && !displayRecordsMap.has(myRecord.txHash)) {
+        displayRecordsMap.set(myRecord.txHash, { name: `Paid for ${split.name}`, hash: myRecord.txHash, amount: `-${split.share.toFixed(2)}`, ts: split.timestamp, isSplit: true });
+        usedTxHashes.add(myRecord.txHash);
+      }
+    }
+  });
+
+  stellarTxs.forEach(tx => {
+    const isReceived = tx.to === currentUserKey;
+    const amount = parseFloat(tx.amount).toFixed(2);
+    const txHash = tx.transaction_hash;
+    const txTime = new Date(tx.created_at).getTime();
+    
+    if (isReceived) {
+      const existingFromSplits = Array.from(displayRecordsMap.values()).find(r => 
+        r.isSplit && r.amount === `+${amount}` && Math.abs(r.ts - txTime) < 60000
+      );
+      if (!existingFromSplits && !usedTxHashes.has(txHash)) {
+        displayRecordsMap.set(txHash, {
+          name: `Received from ${tx.from.substring(0, 5)}...`,
+          hash: txHash,
+          amount: `+${amount}`,
+          ts: txTime
+        });
+      }
+    } else {
+      const existingFromSplits = Array.from(displayRecordsMap.values()).find(r => 
+        r.isSplit && r.amount === `-${amount}` && Math.abs(r.ts - txTime) < 60000
+      );
+      if (!existingFromSplits && !usedTxHashes.has(txHash)) {
+        displayRecordsMap.set(txHash, {
+          name: `Sent to ${tx.to.substring(0, 5)}...`,
+          hash: txHash,
+          amount: `-${amount}`,
+          ts: txTime
+        });
+      }
+    }
+  });
+
+  const displayRecords = Array.from(displayRecordsMap.values()).sort((a, b) => b.ts - a.ts);
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-[#03050a]/95 backdrop-blur-xl animate-[fadeIn_0.2s_ease-out]">
@@ -505,129 +589,29 @@ const HistoryModal = ({ isOpen, onClose, splits, currentUserKey, network }) => {
           <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
         </button>
         <h3 className="text-xl sm:text-2xl font-black mb-1">Transaction History</h3>
-        <p className="text-slate-400 text-xs sm:text-sm mb-6">Your on-chain Send & Receive history.</p>
-        
+        <p className="text-slate-400 text-xs sm:text-sm mb-6">Your confirmed on-chain transactions.</p>
+
         <div className="overflow-y-auto space-y-3 pr-2 flex-1">
-          {isLoading ? (
-            <p className="text-center text-sm text-slate-500 py-10 animate-pulse">Loading from blockchain...</p>
-          ) : history.length > 0 ? history.map((rec) => (
-              <div key={rec.id} className="bg-[#0a0f1c] border border-white/5 rounded-xl p-4 flex justify-between items-center">
-                <div>
-                  <p className="font-bold text-sm text-slate-200">{rec.name}</p>
-                  <p className="text-[10px] text-slate-500 mt-1">{rec.isReceive ? 'From: ' : 'To: '}{rec.otherParty} • {formatTimeAgo(rec.timestamp)}</p>
-                </div>
-                <div className="text-right">
-                  <p className={`font-bold text-sm ${rec.isReceive ? 'text-green-400' : 'text-red-400'}`}>{rec.amount} XLM</p>
-                  {rec.hash && (
-                    <div className="flex items-center gap-2 mt-2 justify-end">
-                      <button onClick={() => { navigator.clipboard.writeText(rec.hash); alert("TxHash Copied!"); }} className="text-slate-400 hover:text-white p-1.5 rounded-lg bg-white/5 hover:bg-white/10" title="Copy Hash"><CopyIcon /></button>
-                      <a href={`https://stellar.expert/explorer/${network === 'mainnet' ? 'public' : 'testnet'}/tx/${rec.hash}`} target="_blank" rel="noreferrer" className="text-blue-400 hover:text-blue-300 px-2 py-1 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 flex items-center gap-1 text-[10px] font-bold" title="View on Stellar Expert">Explorer <LinkIcon /></a>
-                    </div>
-                  )}
-                </div>
+          {loading && displayRecords.length === 0 ? (
+            <p className="text-center text-sm text-slate-500 py-10 animate-pulse">Loading operations...</p>
+          ) : displayRecords.length > 0 ? displayRecords.map((rec, i) => (
+            <div key={i} className="bg-[#0a0f1c] border border-white/5 rounded-xl p-4 flex justify-between items-center">
+              <div>
+                <p className="font-bold text-sm text-slate-200">{rec.name}</p>
+                <p className="text-[10px] text-slate-500 mt-1">{formatTimeAgo(rec.ts)}</p>
               </div>
+              <div className="text-right">
+                <p className={`font-bold text-sm ${rec.amount.startsWith('+') ? 'text-green-400' : 'text-red-400'}`}>{rec.amount} XLM</p>
+                {rec.hash && (
+                  <div className="flex items-center gap-2 mt-2 justify-end">
+                    <button onClick={() => { navigator.clipboard.writeText(rec.hash); alert("TxHash Copied!"); }} className="text-slate-400 hover:text-white p-1.5 rounded-lg bg-white/5 hover:bg-white/10" title="Copy Hash"><CopyIcon /></button>
+                    <a href={`https://stellar.expert/explorer/${network === 'mainnet' ? 'public' : 'testnet'}/tx/${rec.hash}`} target="_blank" rel="noreferrer" className="text-blue-400 hover:text-blue-300 px-2 py-1 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 flex items-center gap-1 text-[10px] font-bold" title="View on Stellar Expert">Explorer <LinkIcon /></a>
+                  </div>
+                )}
+              </div>
+            </div>
           )) : (
             <p className="text-center text-sm text-slate-500 py-10">No completed transactions yet.</p>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const ReceiveModal = ({ isOpen, onClose, splits, currentUserKey, network }) => {
-  const [history, setHistory] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-
-  useEffect(() => {
-    if (isOpen && currentUserKey) {
-      const fetchHistory = async () => {
-        setIsLoading(true);
-        const baseUrl = network === 'mainnet' ? 'https://horizon.stellar.org' : 'https://horizon-testnet.stellar.org';
-        try {
-          const res = await fetch(`${baseUrl}/accounts/${currentUserKey}/payments?limit=50&order=desc`);
-          const data = await res.json();
-          const payments = (data._embedded?.records || []).filter(r => r.type === 'payment' || r.type === 'create_account');
-          
-          const formattedHistory = payments.map(p => {
-             let isReceive = false;
-             let amount = '0';
-             let otherParty = '';
-             if (p.type === 'create_account') {
-                isReceive = p.account === currentUserKey;
-                amount = p.starting_balance;
-                otherParty = isReceive ? p.funder : p.account;
-             } else {
-                isReceive = p.to === currentUserKey;
-                amount = p.amount;
-                otherParty = isReceive ? p.from : p.to;
-             }
-
-             if (!isReceive) return null;
-
-             let txName = "Received XLM";
-             const matchedSplit = splits.find(s => s.friends && s.friends.some(f => f.txHash === p.transaction_hash));
-             if (matchedSplit) {
-                 txName = `Split Receipt: ${matchedSplit.name}`;
-             }
-
-             return {
-                id: p.id,
-                hash: p.transaction_hash,
-                amount: '+' + parseFloat(amount).toFixed(2),
-                name: txName,
-                otherParty: otherParty.substring(0,6) + '...' + otherParty.substring(50),
-                timestamp: new Date(p.created_at).getTime()
-             };
-          }).filter(Boolean);
-          
-          setHistory(formattedHistory);
-        } catch(e) { console.error(e); }
-        setIsLoading(false);
-      };
-      fetchHistory();
-    }
-  }, [isOpen, currentUserKey, network, splits]);
-
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-[#03050a]/95 backdrop-blur-xl animate-[fadeIn_0.2s_ease-out]">
-      <div className="w-full max-w-lg premium-card rounded-3xl p-5 sm:p-8 relative border border-green-500/30 max-h-[85vh] flex flex-col">
-        <button onClick={onClose} className="absolute top-4 right-4 sm:top-6 sm:right-6 text-slate-400 hover:text-white">
-          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
-        </button>
-        <h3 className="text-xl sm:text-2xl font-black mb-1">Receive XLM</h3>
-        <p className="text-slate-400 text-xs sm:text-sm mb-6">Share your address to receive payments.</p>
-        
-        <div className="bg-[#0a0f1c] border border-white/10 rounded-2xl p-4 mb-6 text-center">
-           <p className="text-[10px] text-green-400 font-bold uppercase mb-2">Your Stellar Address</p>
-           <p className="text-xs sm:text-sm font-mono font-bold text-white break-all mb-4 select-all leading-relaxed">{currentUserKey}</p>
-           <button onClick={() => { navigator.clipboard.writeText(currentUserKey); alert("Address Copied!"); }} className="bg-green-600/20 hover:bg-green-600 text-green-400 hover:text-white border border-green-500/30 transition-all font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-2 mx-auto active:scale-95"><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg> Copy Address</button>
-        </div>
-
-        <h4 className="text-sm font-bold text-slate-300 mb-3 border-t border-white/10 pt-4">Recent Received Transactions</h4>
-        <div className="overflow-y-auto space-y-3 pr-2 flex-1 min-h-[150px]">
-          {isLoading ? (
-            <p className="text-center text-sm text-slate-500 py-10 animate-pulse">Loading from blockchain...</p>
-          ) : history.length > 0 ? history.map((rec) => (
-              <div key={rec.id} className="bg-[#0a0f1c] border border-white/5 rounded-xl p-4 flex justify-between items-center">
-                <div>
-                  <p className="font-bold text-sm text-slate-200">{rec.name}</p>
-                  <p className="text-[10px] text-slate-500 mt-1">From: {rec.otherParty} • {formatTimeAgo(rec.timestamp)}</p>
-                </div>
-                <div className="text-right">
-                  <p className="font-bold text-sm text-green-400">{rec.amount} XLM</p>
-                  {rec.hash && (
-                    <div className="flex items-center gap-2 mt-2 justify-end">
-                      <button onClick={() => { navigator.clipboard.writeText(rec.hash); alert("TxHash Copied!"); }} className="text-slate-400 hover:text-white p-1.5 rounded-lg bg-white/5 hover:bg-white/10" title="Copy Hash"><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg></button>
-                      <a href={`https://stellar.expert/explorer/${network === 'mainnet' ? 'public' : 'testnet'}/tx/${rec.hash}`} target="_blank" rel="noreferrer" className="text-blue-400 hover:text-blue-300 px-2 py-1 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 flex items-center gap-1 text-[10px] font-bold" title="View on Stellar Expert">Explorer <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg></a>
-                    </div>
-                  )}
-                </div>
-              </div>
-          )) : (
-            <p className="text-center text-sm text-slate-500 py-10">No received transactions yet.</p>
           )}
         </div>
       </div>
@@ -642,24 +626,24 @@ const Dashboard = ({ network, setNetwork, splits, setSplits, userProfile }) => {
   const [assets, setAssets] = useState([]);
   const [isSendOpen, setIsSendOpen] = useState(false);
   const [isNewSplitOpen, setIsNewSplitOpen] = useState(false);
-  const [isSwapOpen, setIsSwapOpen] = useState(false);
-  const [isHistoryOpen, setIsHistoryOpen] = useState(false); 
   const [isReceiveOpen, setIsReceiveOpen] = useState(false);
-  const [currentTime, setCurrentTime] = useState(Date.now()); 
-  
+  const [isSwapOpen, setIsSwapOpen] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [currentTime, setCurrentTime] = useState(Date.now());
+
   const [sendPrefillContext, setSendPrefillContext] = useState(null);
-  const [activeSplitContext, setActiveSplitContext] = useState(null); 
+  const [activeSplitContext, setActiveSplitContext] = useState(null);
 
   useEffect(() => {
     const fetchAssets = async () => {
-      const pubKey = sessionStorage.getItem('splitx_full_key');
+      const pubKey = sessionStorage.getItem('splitchain_full_key');
       if (!pubKey) return;
       try {
         const baseUrl = network === 'mainnet' ? 'https://horizon.stellar.org' : 'https://horizon-testnet.stellar.org';
         const res = await fetch(`${baseUrl}/accounts/${pubKey}`);
-        if (res.status === 200) { const data = await res.json(); setAssets(data.balances); } 
+        if (res.status === 200) { const data = await res.json(); setAssets(data.balances); }
         else { setAssets([{ asset_type: 'native', balance: '0.00' }]); }
-      } catch (e) {}
+      } catch (e) { }
     };
     fetchAssets();
     const interval = setInterval(() => { fetchAssets(); setCurrentTime(Date.now()); }, 10000);
@@ -668,9 +652,7 @@ const Dashboard = ({ network, setNetwork, splits, setSplits, userProfile }) => {
 
   const nativeObj = assets.find(a => a.asset_type === 'native');
   const nativeXLM = nativeObj ? nativeObj.balance : '0.00';
-  const currentUserKey = (sessionStorage.getItem('splitx_full_key') || '').trim().toUpperCase();
-
-
+  const currentUserKey = (sessionStorage.getItem('splitchain_full_key') || '').trim().toUpperCase();
 
   const relevantSplits = splits.filter(split => {
     const creator = (split.creator || '').trim().toUpperCase();
@@ -687,23 +669,24 @@ const Dashboard = ({ network, setNetwork, splits, setSplits, userProfile }) => {
 
   const totalIOwe = relevantSplits
     .filter(split => {
-       const creator = (split.creator || '').trim().toUpperCase();
-       return creator !== currentUserKey && !split.settled;
+      const creator = (split.creator || '').trim().toUpperCase();
+      return creator !== currentUserKey && !split.settled;
     })
     .reduce((acc, split) => {
-       const me = (split.friends || []).find(f => f.address === currentUserKey);
-       if (me && !me.hasPaid) return acc + split.share;
-       return acc;
+      const me = (split.friends || []).find(f => (f.address || '').trim().toUpperCase() === currentUserKey);
+      if (me && !me.hasPaid) return acc + split.share;
+      return acc;
     }, 0);
 
   const handleCreateSplit = async (newSplit) => {
     if (db) {
-      try { await db.collection('splits').doc(newSplit.id.toString()).set(newSplit); } 
-      catch (e) { console.error("Write error:", e); }
+      try { 
+        await db.collection('splits').doc(newSplit.id.toString()).set(newSplit); 
+      } catch (e) { console.error("Write error:", e); }
     } else {
       const updatedSplits = [newSplit, ...splits];
       setSplits(updatedSplits);
-      sessionStorage.setItem('splitx_user_splits', JSON.stringify(updatedSplits));
+      sessionStorage.setItem('splitchain_user_splits', JSON.stringify(updatedSplits));
     }
   };
 
@@ -714,20 +697,20 @@ const Dashboard = ({ network, setNetwork, splits, setSplits, userProfile }) => {
     } else {
       const updatedSplits = splits.map(split => split.id === splitId ? { ...split, settled: true } : split);
       setSplits(updatedSplits);
-      sessionStorage.setItem('splitx_user_splits', JSON.stringify(updatedSplits));
+      sessionStorage.setItem('splitchain_user_splits', JSON.stringify(updatedSplits));
     }
   };
 
   const handlePaymentSuccess = async (txHash) => {
     if (!activeSplitContext) return;
-    
+
     if (db) {
       try {
         const splitRef = db.collection('splits').doc(activeSplitContext.splitId.toString());
         const doc = await splitRef.get();
         if (doc.exists) {
           const splitData = doc.data();
-          const updatedFriends = (splitData.friends||[]).map(f => f.address === currentUserKey ? { ...f, hasPaid: true, txHash } : f);
+          const updatedFriends = (splitData.friends || []).map(f => (f.address || '').trim().toUpperCase() === currentUserKey ? { ...f, hasPaid: true, txHash } : f);
           const allPaid = updatedFriends.every(f => f.hasPaid);
           await splitRef.update({ friends: updatedFriends, settled: allPaid });
         }
@@ -735,16 +718,28 @@ const Dashboard = ({ network, setNetwork, splits, setSplits, userProfile }) => {
     } else {
       const updatedSplits = splits.map(split => {
         if (split.id === activeSplitContext.splitId) {
-          const updatedFriends = (split.friends||[]).map(f => f.address === currentUserKey ? { ...f, hasPaid: true, txHash } : f);
+          const updatedFriends = (split.friends || []).map(f => (f.address || '').trim().toUpperCase() === currentUserKey ? { ...f, hasPaid: true, txHash } : f);
           const allPaid = updatedFriends.every(f => f.hasPaid);
           return { ...split, friends: updatedFriends, settled: allPaid };
         }
         return split;
       });
       setSplits(updatedSplits);
-      sessionStorage.setItem('splitx_user_splits', JSON.stringify(updatedSplits));
+      sessionStorage.setItem('splitchain_user_splits', JSON.stringify(updatedSplits));
     }
     setActiveSplitContext(null);
+  };
+
+  const handleDeleteSplit = async (splitId) => {
+    if (!confirm("Are you sure you want to delete this split?")) return;
+    if (db) {
+      try { await db.collection('splits').doc(splitId.toString()).delete(); }
+      catch (e) { console.error(e); }
+    } else {
+      const updatedSplits = splits.filter(split => split.id !== splitId);
+      setSplits(updatedSplits);
+      sessionStorage.setItem('splitchain_user_splits', JSON.stringify(updatedSplits));
+    }
   };
 
   const handlePayNow = (split) => {
@@ -756,12 +751,12 @@ const Dashboard = ({ network, setNetwork, splits, setSplits, userProfile }) => {
 
   return (
     <main className="relative z-10 pt-32 px-4 sm:px-6 pb-24 w-full max-w-5xl mx-auto flex flex-col animate-[fadeIn_0.3s_ease-out]">
-      <SendModal isOpen={isSendOpen} onClose={() => {setIsSendOpen(false); setSendPrefillContext(null);}} network={network} prefillData={sendPrefillContext} onPaymentSuccess={handlePaymentSuccess} />
+      <SendModal isOpen={isSendOpen} onClose={() => { setIsSendOpen(false); setSendPrefillContext(null); }} network={network} prefillData={sendPrefillContext} onPaymentSuccess={handlePaymentSuccess} />
+      <ReceiveModal isOpen={isReceiveOpen} onClose={() => setIsReceiveOpen(false)} currentUserKey={currentUserKey} network={network} />
       <NewSplitModal isOpen={isNewSplitOpen} onClose={() => setIsNewSplitOpen(false)} onSplitCreated={handleCreateSplit} />
       <SwapModal isOpen={isSwapOpen} onClose={() => setIsSwapOpen(false)} />
       <HistoryModal isOpen={isHistoryOpen} onClose={() => setIsHistoryOpen(false)} splits={relevantSplits} currentUserKey={currentUserKey} network={network} />
-      <ReceiveModal isOpen={isReceiveOpen} onClose={() => setIsReceiveOpen(false)} splits={relevantSplits} currentUserKey={currentUserKey} network={network} />
-      
+
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         <FadeIn>
           <h2 className="text-3xl font-black">Dashboard</h2>
@@ -778,19 +773,19 @@ const Dashboard = ({ network, setNetwork, splits, setSplits, userProfile }) => {
       <FadeIn delay={150}>
         <div className="premium-card p-6 sm:p-8 rounded-3xl mb-6 border border-blue-500/20">
           <div className="flex justify-between items-center mb-6">
-            <p className="text-blue-400 text-xs font-bold tracking-widest uppercase flex items-center gap-2"><span className={`w-2 h-2 rounded-full animate-pulse ${network==='mainnet'?'bg-purple-400':'bg-blue-400'}`}></span> {network} Balance</p>
+            <p className="text-blue-400 text-xs font-bold tracking-widest uppercase flex items-center gap-2"><span className={`w-2 h-2 rounded-full animate-pulse ${network === 'mainnet' ? 'bg-purple-400' : 'bg-blue-400'}`}></span> {network} Balance</p>
             <div className="flex bg-[#0a0f1c] rounded-lg p-1 border border-white/5">
-              <button onClick={()=>setNetwork('testnet')} className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all ${network==='testnet'?'bg-blue-600 text-white':'text-slate-500'}`}>TEST</button>
-              <button onClick={()=>setNetwork('mainnet')} className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all ${network==='mainnet'?'bg-purple-600 text-white':'text-slate-500'}`}>MAIN</button>
+              <button onClick={() => setNetwork('testnet')} className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all ${network === 'testnet' ? 'bg-blue-600 text-white' : 'text-slate-500'}`}>TEST</button>
+              <button onClick={() => setNetwork('mainnet')} className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all ${network === 'mainnet' ? 'bg-purple-600 text-white' : 'text-slate-500'}`}>MAIN</button>
             </div>
           </div>
-          <h3 className="text-5xl sm:text-6xl font-black">{parseFloat(nativeXLM).toLocaleString(undefined,{minimumFractionDigits:2})}<span className="text-slate-500 text-2xl ml-3">XLM</span></h3>
-          
+          <h3 className="text-5xl sm:text-6xl font-black">{parseFloat(nativeXLM).toLocaleString(undefined, { minimumFractionDigits: 2 })}<span className="text-slate-500 text-2xl ml-3">XLM</span></h3>
+
           <div className="grid grid-cols-4 gap-3 sm:gap-6 mt-8 pt-6 border-t border-white/10">
-            <button onClick={()=>setIsSendOpen(true)} className="flex flex-col items-center gap-3 group active:scale-95"><div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center group-hover:bg-blue-600 transition-all border border-white/10 group-hover:shadow-[0_0_20px_rgba(59,130,246,0.3)]"><svg className="w-6 h-6 text-slate-300 group-hover:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 19V6m0 0l-7 7m7-7l7 7" /></svg></div><span className="text-xs font-bold text-slate-400 group-hover:text-blue-400">Send</span></button>
+            <button onClick={() => setIsSendOpen(true)} className="flex flex-col items-center gap-3 group active:scale-95"><div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center group-hover:bg-blue-600 transition-all border border-white/10 group-hover:shadow-[0_0_20px_rgba(59,130,246,0.3)]"><svg className="w-6 h-6 text-slate-300 group-hover:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 19V6m0 0l-7 7m7-7l7 7" /></svg></div><span className="text-xs font-bold text-slate-400 group-hover:text-blue-400">Send</span></button>
             <button onClick={() => setIsReceiveOpen(true)} className="flex flex-col items-center gap-3 group active:scale-95"><div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center group-hover:bg-green-600 transition-all border border-white/10 group-hover:shadow-[0_0_20px_rgba(34,197,94,0.3)]"><svg className="w-6 h-6 text-slate-300 group-hover:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 5v13m0 0l-7-7m7-7l7-7" /></svg></div><span className="text-xs font-bold text-slate-400 group-hover:text-green-400">Receive</span></button>
-            <button onClick={()=>setIsSwapOpen(true)} className="flex flex-col items-center gap-3 group active:scale-95"><div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center group-hover:bg-purple-600 transition-all border border-white/10 group-hover:shadow-[0_0_20px_rgba(168,85,247,0.3)]"><svg className="w-6 h-6 text-slate-300 group-hover:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg></div><span className="text-xs font-bold text-slate-400 group-hover:text-purple-400">Swap</span></button>
-            <button onClick={()=>setIsHistoryOpen(true)} className="flex flex-col items-center gap-3 group active:scale-95"><div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center group-hover:bg-amber-600 transition-all border border-white/10 group-hover:shadow-[0_0_20px_rgba(245,158,11,0.3)]"><svg className="w-6 h-6 text-slate-300 group-hover:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div><span className="text-xs font-bold text-slate-400 group-hover:text-amber-400">History</span></button>
+            <button onClick={() => setIsSwapOpen(true)} className="flex flex-col items-center gap-3 group active:scale-95"><div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center group-hover:bg-purple-600 transition-all border border-white/10 group-hover:shadow-[0_0_20px_rgba(168,85,247,0.3)]"><svg className="w-6 h-6 text-slate-300 group-hover:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg></div><span className="text-xs font-bold text-slate-400 group-hover:text-purple-400">Swap</span></button>
+            <button onClick={() => setIsHistoryOpen(true)} className="flex flex-col items-center gap-3 group active:scale-95"><div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center group-hover:bg-amber-600 transition-all border border-white/10 group-hover:shadow-[0_0_20px_rgba(245,158,11,0.3)]"><svg className="w-6 h-6 text-slate-300 group-hover:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div><span className="text-xs font-bold text-slate-400 group-hover:text-amber-400">History</span></button>
           </div>
         </div>
       </FadeIn>
@@ -814,17 +809,17 @@ const Dashboard = ({ network, setNetwork, splits, setSplits, userProfile }) => {
           {relevantSplits.length > 0 ? relevantSplits.map((split) => {
             const isCreator = (split.creator || '') === currentUserKey;
             let statusBadge = null;
-            let myFriendRecord = (split.friends||[]).find(f => f.address === currentUserKey);
-            
+            let myFriendRecord = (split.friends || []).find(f => (f.address || '').trim().toUpperCase() === currentUserKey);
+
             if (split.settled) {
               statusBadge = <span className="text-[10px] font-bold text-green-500 bg-green-500/10 px-2 py-1 rounded border border-green-500/20 flex items-center gap-1"><svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg> SETTLED</span>;
             } else if (isCreator) {
-              const paidCount = (split.friends||[]).filter(f=>f.hasPaid).length;
-              statusBadge = <span className="text-[10px] font-bold text-blue-400 bg-blue-500/10 px-2 py-1 rounded border border-blue-500/20">{paidCount}/{(split.friends||[]).length} PAID</span>;
+              const paidCount = (split.friends || []).filter(f => f.hasPaid).length;
+              statusBadge = <span className="text-[10px] font-bold text-blue-400 bg-blue-500/10 px-2 py-1 rounded border border-blue-500/20">{paidCount}/{(split.friends || []).length} PAID</span>;
             } else if (myFriendRecord?.hasPaid) {
-               statusBadge = <span className="text-[10px] font-bold text-green-500 bg-green-500/10 px-2 py-1 rounded border border-green-500/20 flex items-center gap-1"><svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg> YOU PAID</span>;
+              statusBadge = <span className="text-[10px] font-bold text-green-500 bg-green-500/10 px-2 py-1 rounded border border-green-500/20 flex items-center gap-1"><svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg> YOU PAID</span>;
             } else {
-               statusBadge = <button onClick={() => handlePayNow(split)} className="text-[10px] bg-red-500/10 text-red-400 border border-red-500/20 px-3 py-1 rounded-lg hover:bg-red-500 hover:text-white font-bold active:scale-95 shadow-[0_0_10px_rgba(239,68,68,0.2)] transition-all">Pay Now</button>;
+              statusBadge = <button onClick={() => handlePayNow(split)} className="text-[10px] bg-red-500/10 text-red-400 border border-red-500/20 px-3 py-1 rounded-lg hover:bg-red-500 hover:text-white font-bold active:scale-95 shadow-[0_0_10px_rgba(239,68,68,0.2)] transition-all">Pay Now</button>;
             }
 
             return (
@@ -842,7 +837,7 @@ const Dashboard = ({ network, setNetwork, splits, setSplits, userProfile }) => {
                     </div>
                   </div>
                   <div className="text-right flex flex-col items-end">
-                    <p className={`font-bold text-sm ${split.settled ? 'text-slate-400' : (isCreator ? 'text-green-400' : 'text-red-400')}`}>{isCreator?'+':'-'}{isCreator ? (split.share*(split.friends||[]).length).toFixed(2) : split.share.toFixed(2)} XLM</p>
+                    <p className={`font-bold text-sm ${split.settled ? 'text-slate-400' : (isCreator ? 'text-green-400' : 'text-red-400')}`}>{isCreator ? '+' : '-'}{isCreator ? (split.share * (split.friends || []).length).toFixed(2) : split.share.toFixed(2)} XLM</p>
                     <div className="mt-1.5">{statusBadge}</div>
                   </div>
                 </div>
@@ -850,29 +845,46 @@ const Dashboard = ({ network, setNetwork, splits, setSplits, userProfile }) => {
                 <div className="pt-2.5 border-t border-white/5 mt-1 bg-black/20 rounded-lg p-2">
                   {isCreator ? (
                     <div className="text-[10px] space-y-2">
-                       {(split.friends||[]).map((f, i) => (
-                         <div key={i} className="flex justify-between items-center">
-                           <span className="text-slate-300 font-medium">{f.name || f.address.substring(0,4)+'...'}</span>
-                           {f.hasPaid ? (
-                             <div className="flex items-center gap-1.5 bg-green-400/10 px-2 py-1 rounded border border-green-500/20">
-                               <span className="text-green-400">Paid</span>
-                               <button onClick={()=>{navigator.clipboard.writeText(f.txHash); alert("Hash Copied!");}} className="text-slate-400 hover:text-white" title="Copy Hash"><CopyIcon /></button>
-                               <a href={`https://stellar.expert/explorer/${network === 'mainnet' ? 'public' : 'testnet'}/tx/${f.txHash}`} target="_blank" className="text-blue-400 hover:text-blue-300" title="View on Explorer"><LinkIcon /></a>
-                             </div>
-                           ) : <span className="text-slate-500 bg-slate-800 px-1.5 py-0.5 rounded border border-white/5">Pending</span>}
-                         </div>
-                       ))}
+                      {(split.friends || []).map((f, i) => (
+                        <div key={i} className="flex justify-between items-center">
+                          <span className="text-slate-300 font-medium">{f.name || f.address.substring(0, 4) + '...'}</span>
+                          {f.hasPaid ? (
+                            <div className="flex items-center gap-1.5 bg-green-400/10 px-2 py-1 rounded border border-green-500/20">
+                              <span className="text-green-400">Paid</span>
+                              <button onClick={() => { navigator.clipboard.writeText(f.txHash); alert("Hash Copied!"); }} className="text-slate-400 hover:text-white" title="Copy Hash"><CopyIcon /></button>
+                              <a href={`https://stellar.expert/explorer/${network === 'mainnet' ? 'public' : 'testnet'}/tx/${f.txHash}`} target="_blank" className="text-blue-400 hover:text-blue-300" title="View on Explorer"><LinkIcon /></a>
+                            </div>
+                          ) : <span className="text-slate-500 bg-slate-800 px-1.5 py-0.5 rounded border border-white/5">Pending</span>}
+                        </div>
+                      ))}
+                      {split.settled && (
+                        <div className="mt-3 pt-2 border-t border-white/5 flex justify-end">
+                          <button onClick={() => handleDeleteSplit(split.id)} className="text-[10px] text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5">
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            Delete
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="text-[10px] text-slate-400 flex justify-between items-center">
-                       <span>Total share for {(split.friends||[]).length+1} people</span>
-                       {myFriendRecord?.txHash && (
-                         <div className="flex items-center gap-1.5 bg-green-400/10 px-2 py-1 rounded border border-green-500/20">
-                           <span className="text-green-400">Tx Confirmed</span>
-                           <button onClick={()=>{navigator.clipboard.writeText(myFriendRecord.txHash); alert("Hash Copied!");}} className="text-slate-400 hover:text-white" title="Copy Hash"><CopyIcon /></button>
-                           <a href={`https://stellar.expert/explorer/${network === 'mainnet' ? 'public' : 'testnet'}/tx/${myFriendRecord.txHash}`} target="_blank" className="text-blue-400 hover:text-blue-300" title="View on Explorer"><LinkIcon /></a>
-                         </div>
-                       )}
+                      <span>Total share for {(split.friends || []).length + 1} people</span>
+                      {myFriendRecord?.txHash && (
+                        <div className="flex items-center gap-1.5 bg-green-400/10 px-2 py-1 rounded border border-green-500/20">
+                          <span className="text-green-400">Tx Confirmed</span>
+                          <button onClick={() => { navigator.clipboard.writeText(myFriendRecord.txHash); alert("Hash Copied!"); }} className="text-slate-400 hover:text-white" title="Copy Hash"><CopyIcon /></button>
+                          <a href={`https://stellar.expert/explorer/${network === 'mainnet' ? 'public' : 'testnet'}/tx/${myFriendRecord.txHash}`} target="_blank" className="text-blue-400 hover:text-blue-300" title="View on Explorer"><LinkIcon /></a>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {(myFriendRecord?.hasPaid || split.settled) && (
+                    <div className="mt-3 pt-2 border-t border-white/5 flex justify-end">
+                      <button onClick={() => handleDeleteSplit(split.id)} className="text-[10px] text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5">
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        Delete
+                      </button>
                     </div>
                   )}
                 </div>
@@ -891,23 +903,24 @@ const Dashboard = ({ network, setNetwork, splits, setSplits, userProfile }) => {
 // 7. MAIN APP WRAPPER (Landing & Auth Flow)
 // ==========================================
 function MainApp() {
-  const [userProfile, setUserProfile] = useState(null); 
+  const [userProfile, setUserProfile] = useState(null);
   const [connectedWallet, setConnectedWallet] = useState(null);
   const [currentView, setCurrentView] = useState('landing');
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
-  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false); 
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [network, setNetwork] = useState('testnet');
-  const [splits, setSplits] = useState([]); 
+  const [splits, setSplits] = useState([]);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && !window.StellarSdk) {
       const script = document.createElement('script'); script.src = 'https://cdnjs.cloudflare.com/ajax/libs/stellar-sdk/10.4.1/stellar-sdk.min.js'; document.head.appendChild(script);
     }
-    
+
     let unsubscribeAuth = null;
-    let unsubscribeSplits = null;
+    let unsubscribeCreator = null;
+    let unsubscribeInbox = null;
 
     if (auth && db) {
       unsubscribeAuth = auth.onAuthStateChanged(async (user) => {
@@ -916,31 +929,61 @@ function MainApp() {
             const doc = await db.collection('users').doc(user.uid).get();
             if (doc.exists) setUserProfile(doc.data());
             else setUserProfile({ uid: user.uid, email: user.email, name: 'User', dp: '👤', gender: 'Not specified' });
-          } catch(e) { setUserProfile({ uid: user.uid, email: user.email, name: 'User', dp: '👤', gender: 'Not specified' }); }
+          } catch (e) { setUserProfile({ uid: user.uid, email: user.email, name: 'User', dp: '👤', gender: 'Not specified' }); }
         } else { setUserProfile(null); }
         setIsLoadingAuth(false);
       });
 
-      unsubscribeSplits = db.collection('splits').orderBy('timestamp', 'desc').onSnapshot((snapshot) => {
-        const fetchedSplits = snapshot.docs.map(doc => doc.data());
-        setSplits(fetchedSplits);
-      }, (error) => { console.error("Firestore Error:", error); });
+      const fullKey = (sessionStorage.getItem('splitchain_full_key') || '').trim().toUpperCase();
+      if (fullKey) {
+        let createdSplits = [];
+        let inboxSplits = [];
+        
+        const updateSplits = () => {
+          const all = [...createdSplits, ...inboxSplits];
+          const uniqueMap = new Map();
+          all.forEach(item => {
+             if (item && item.id) uniqueMap.set(item.id, item);
+          });
+          const unique = Array.from(uniqueMap.values());
+          unique.sort((a, b) => b.timestamp - a.timestamp);
+          setSplits(unique);
+        };
+
+        unsubscribeCreator = db.collection('splits').where('creator', '==', fullKey).onSnapshot((snapshot) => {
+          createdSplits = snapshot.docs.map(doc => doc.data());
+          updateSplits();
+        }, e => console.error("Firestore Creator Error:", e));
+
+        unsubscribeInbox = db.collection('splits')
+          .where('participantAddresses', 'array-contains', fullKey)
+          .onSnapshot((snapshot) => {
+            inboxSplits = snapshot.docs.map(doc => doc.data());
+            updateSplits();
+          }, e => console.error("Firestore Inbox Error:", e));
+      } else {
+        setSplits([]);
+      }
     } else {
       setIsLoadingAuth(false);
-      const savedUser = sessionStorage.getItem('splitx_user_profile');
+      const savedUser = sessionStorage.getItem('splitchain_user_profile');
       if (savedUser) setUserProfile(JSON.parse(savedUser));
-      const savedSplits = sessionStorage.getItem('splitx_user_splits');
+      const savedSplits = sessionStorage.getItem('splitchain_user_splits');
       if (savedSplits) setSplits(JSON.parse(savedSplits));
-      const handleStorage = (e) => { if (e.key === 'splitx_user_splits' && e.newValue) setSplits(JSON.parse(e.newValue)); };
+      const handleStorage = (e) => { if (e.key === 'splitchain_user_splits' && e.newValue) setSplits(JSON.parse(e.newValue)); };
       window.addEventListener('storage', handleStorage);
       return () => window.removeEventListener('storage', handleStorage);
     }
 
-    const savedAddress = sessionStorage.getItem('splitx_wallet_address');
+    const savedAddress = sessionStorage.getItem('splitchain_wallet_address');
     if (savedAddress) setConnectedWallet(savedAddress);
 
-    return () => { if (unsubscribeAuth) unsubscribeAuth(); if (unsubscribeSplits) unsubscribeSplits(); };
-  }, []);
+    return () => { 
+      if (unsubscribeAuth) unsubscribeAuth(); 
+      if (unsubscribeCreator) unsubscribeCreator(); 
+      if (unsubscribeInbox) unsubscribeInbox(); 
+    };
+  }, [connectedWallet]);
 
   const handleLaunchApp = () => {
     if (!userProfile) setCurrentView('auth');
@@ -956,7 +999,7 @@ function MainApp() {
 
   const handleProfileUpdate = async (p) => {
     setUserProfile(p);
-    sessionStorage.setItem('splitx_user_profile', JSON.stringify(p));
+    sessionStorage.setItem('splitchain_user_profile', JSON.stringify(p));
     if (db && p.uid) await db.collection('users').doc(p.uid).update(p);
   };
 
@@ -964,20 +1007,20 @@ function MainApp() {
     try {
       let pubKey = '';
       if (provider === 'albedo') {
-        const res = await window.albedo.publicKey({ token: 'splitx_auth' }); pubKey = res.pubkey;
+        const res = await window.albedo.publicKey({ token: 'splitchain_auth' }); pubKey = res.pubkey;
       } else {
         await window.freighterApi.setAllowed();
         const res = await window.freighterApi.getPublicKey(); pubKey = typeof res === 'string' ? res : res.publicKey;
       }
-      sessionStorage.setItem('splitx_full_key', pubKey);
-      sessionStorage.setItem('splitx_wallet_address', pubKey.substring(0,4)+'...'+pubKey.substring(pubKey.length-4));
-      sessionStorage.setItem('splitx_wallet_provider', provider);
-      setConnectedWallet(pubKey.substring(0,4)+'...'+pubKey.substring(pubKey.length-4));
+      sessionStorage.setItem('splitchain_full_key', pubKey);
+      sessionStorage.setItem('splitchain_wallet_address', pubKey.substring(0, 4) + '...' + pubKey.substring(pubKey.length - 4));
+      sessionStorage.setItem('splitchain_wallet_provider', provider);
+      setConnectedWallet(pubKey.substring(0, 4) + '...' + pubKey.substring(pubKey.length - 4));
       setCurrentView('dashboard'); setIsWalletModalOpen(false);
     } catch (e) { console.error(e); }
   };
 
-  if (isLoadingAuth) return <div className="min-h-screen bg-[#03050a] flex items-center justify-center text-blue-400 font-bold tracking-widest uppercase animate-pulse">Loading SplitX...</div>;
+  if (isLoadingAuth) return <div className="min-h-screen bg-[#03050a] flex items-center justify-center text-blue-400 font-bold tracking-widest uppercase animate-pulse">Loading SplitChain...</div>;
 
   return (
     <>
@@ -985,7 +1028,7 @@ function MainApp() {
         html, body, #root { margin: 0; padding: 0; width: 100%; min-height: 100vh; background-color: #03050a; scroll-behavior: smooth; }
         .premium-card { background: linear-gradient(145deg, rgba(20, 25, 40, 0.7) 0%, rgba(10, 12, 20, 0.9) 100%); border: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(20px); }
       `}</style>
-      
+
       <div className="min-h-screen w-full text-white font-sans relative overflow-x-hidden">
         <div className="fixed inset-0 w-full h-[120vh] pointer-events-none z-0 overflow-hidden">
           <video src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260328_105406_16f4600d-7a92-4292-b96e-b19156c7830a.mp4" autoPlay loop muted playsInline className="w-full h-full object-cover scale-105" />
@@ -995,10 +1038,10 @@ function MainApp() {
         <nav className="fixed top-4 inset-x-0 px-4 sm:px-6 z-40 flex justify-center w-full pointer-events-none">
           <div className="w-full max-w-6xl premium-card rounded-2xl px-4 py-3 flex justify-between items-center pointer-events-auto shadow-2xl backdrop-blur-3xl bg-[#03050a]/50">
             <div className="flex items-center gap-3 cursor-pointer group" onClick={() => setCurrentView('landing')}>
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#1e293b] to-[#0f172a] border border-white/10 flex items-center justify-center font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 shadow-inner">SX</div>
-              <h1 className="text-2xl font-black hidden sm:block">Split<span className="text-slate-400">X</span></h1>
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#1e293b] to-[#0f172a] border border-white/10 flex items-center justify-center font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 shadow-inner">SC</div>
+              <h1 className="text-2xl font-black hidden sm:block">SplitChain</h1>
             </div>
-            
+
             <div className="flex items-center gap-2 sm:gap-3">
               {!userProfile ? (
                 <button onClick={() => setCurrentView('auth')} className="px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-blue-600 hover:bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.4)] transition-all active:scale-95">Sign In</button>
@@ -1018,64 +1061,64 @@ function MainApp() {
 
         {currentView === 'landing' && (
           <main className="relative z-10 pt-40 px-4 text-center">
-             <FadeIn><div className="inline-flex items-center gap-3 mb-8 px-5 py-2 rounded-full bg-[#0a0f1c]/80 border border-blue-500/30 text-blue-300 text-xs font-bold tracking-widest shadow-[0_0_20px_rgba(59,130,246,0.15)]"><svg className="w-4 h-4 animate-[spin_4s_linear_infinite] text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5" /></svg> Stellar Network Live</div></FadeIn>
-             <FadeIn delay={100}><h2 className="text-5xl md:text-8xl font-black mb-6 leading-[1.1] tracking-tighter drop-shadow-2xl">Split effortlessly.<br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 animate-pulse">Settle on Web3.</span></h2></FadeIn>
-             <FadeIn delay={200}><p className="text-slate-300 text-lg md:text-xl max-w-2xl mx-auto font-medium mb-12">Universal expense sharing. Fraction of a cent fees. Built on Stellar.</p></FadeIn>
-             <FadeIn delay={300}><button onClick={handleLaunchApp} className="bg-white text-black px-12 py-5 rounded-full font-black text-lg hover:scale-110 active:scale-95 transition-all shadow-[0_0_40px_rgba(255,255,255,0.3)]">Launch App</button></FadeIn>
+            <FadeIn><div className="inline-flex items-center gap-3 mb-8 px-5 py-2 rounded-full bg-[#0a0f1c]/80 border border-blue-500/30 text-blue-300 text-xs font-bold tracking-widest shadow-[0_0_20px_rgba(59,130,246,0.15)]"><svg className="w-4 h-4 animate-[spin_4s_linear_infinite] text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5" /></svg> Stellar Network Live</div></FadeIn>
+            <FadeIn delay={100}><h2 className="text-5xl md:text-8xl font-black mb-6 leading-[1.1] tracking-tighter drop-shadow-2xl">Split effortlessly.<br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 animate-pulse">Settle on Web3.</span></h2></FadeIn>
+            <FadeIn delay={200}><p className="text-slate-300 text-lg md:text-xl max-w-2xl mx-auto font-medium mb-12">Universal expense sharing. Fraction of a cent fees. Built on Stellar.</p></FadeIn>
+            <FadeIn delay={300}><button onClick={handleLaunchApp} className="bg-white text-black px-12 py-5 rounded-full font-black text-lg hover:scale-110 active:scale-95 transition-all shadow-[0_0_40px_rgba(255,255,255,0.3)]">Launch App</button></FadeIn>
 
-             <div className="h-24 md:h-32"></div>
+            <div className="h-24 md:h-32"></div>
 
-             <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 w-full mt-8 pb-24">
-               <FadeIn delay={0}>
-                 <div className="premium-card p-8 rounded-[2rem] text-left hover:scale-105 transition-all group h-full">
-                   <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center text-slate-300 mb-6 border border-white/10 shadow-inner group-hover:shadow-[0_0_15px_rgba(59,130,246,0.3)] transition-all">
-                     <svg className="w-6 h-6 group-hover:text-blue-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                   </div>
-                   <h4 className="text-xl font-bold mb-3 text-white">Lightning Fast</h4>
-                   <p className="text-slate-400 text-sm leading-relaxed">Settle debts across borders instantly with USDC and Stellar tokens. No more waiting.</p>
-                 </div>
-               </FadeIn>
+            <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 w-full mt-8 pb-24">
+              <FadeIn delay={0}>
+                <div className="premium-card p-8 rounded-[2rem] text-left hover:scale-105 transition-all group h-full">
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center text-slate-300 mb-6 border border-white/10 shadow-inner group-hover:shadow-[0_0_15px_rgba(59,130,246,0.3)] transition-all">
+                    <svg className="w-6 h-6 group-hover:text-blue-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                  </div>
+                  <h4 className="text-xl font-bold mb-3 text-white">Lightning Fast</h4>
+                  <p className="text-slate-400 text-sm leading-relaxed">Settle debts across borders instantly with USDC and Stellar tokens. No more waiting.</p>
+                </div>
+              </FadeIn>
 
-               <FadeIn delay={100}>
-                 <div className="premium-card p-8 rounded-[2rem] text-left hover:scale-105 transition-all group h-full">
-                   <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center text-slate-300 mb-6 border border-white/10 shadow-inner group-hover:shadow-[0_0_15px_rgba(59,130,246,0.3)] transition-all">
-                     <svg className="w-6 h-6 group-hover:text-green-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
-                   </div>
-                   <h4 className="text-xl font-bold mb-3 text-white">Trustless Logic</h4>
-                   <p className="text-slate-400 text-sm leading-relaxed">Built on Soroban smart contracts. Your splits are safe and unalterable. You own your data.</p>
-                 </div>
-               </FadeIn>
+              <FadeIn delay={100}>
+                <div className="premium-card p-8 rounded-[2rem] text-left hover:scale-105 transition-all group h-full">
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center text-slate-300 mb-6 border border-white/10 shadow-inner group-hover:shadow-[0_0_15px_rgba(59,130,246,0.3)] transition-all">
+                    <svg className="w-6 h-6 group-hover:text-green-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                  </div>
+                  <h4 className="text-xl font-bold mb-3 text-white">Trustless Logic</h4>
+                  <p className="text-slate-400 text-sm leading-relaxed">Built on Soroban smart contracts. Your splits are safe and unalterable. You own your data.</p>
+                </div>
+              </FadeIn>
 
-               <FadeIn delay={200}>
-                 <div className="premium-card p-8 rounded-[2rem] text-left hover:scale-105 transition-all group h-full">
-                   <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center text-slate-300 mb-6 border border-white/10 shadow-inner group-hover:shadow-[0_0_15px_rgba(59,130,246,0.3)] transition-all">
-                     <svg className="w-6 h-6 group-hover:text-purple-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
-                   </div>
-                   <h4 className="text-xl font-bold mb-3 text-white">Near-Zero Gas</h4>
-                   <p className="text-slate-400 text-sm leading-relaxed">Stop worrying about Ethereum fees. Leverage the Stellar network to pay just ~0.00001 XLM per transaction.</p>
-                 </div>
-               </FadeIn>
-             </div>
+              <FadeIn delay={200}>
+                <div className="premium-card p-8 rounded-[2rem] text-left hover:scale-105 transition-all group h-full">
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center text-slate-300 mb-6 border border-white/10 shadow-inner group-hover:shadow-[0_0_15px_rgba(59,130,246,0.3)] transition-all">
+                    <svg className="w-6 h-6 group-hover:text-purple-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                  </div>
+                  <h4 className="text-xl font-bold mb-3 text-white">Near-Zero Gas</h4>
+                  <p className="text-slate-400 text-sm leading-relaxed">Stop worrying about Ethereum fees. Leverage the Stellar network to pay just ~0.00001 XLM per transaction.</p>
+                </div>
+              </FadeIn>
+            </div>
           </main>
         )}
 
-        {currentView === 'auth' && <AuthScreen onBack={()=>setCurrentView('landing')} onLoginSuccess={()=>setCurrentView('landing')} />}
-        
+        {currentView === 'auth' && <AuthScreen onBack={() => setCurrentView('landing')} onLoginSuccess={() => setCurrentView('landing')} />}
+
         {currentView === 'dashboard' && <Dashboard network={network} setNetwork={setNetwork} splits={splits} setSplits={setSplits} userProfile={userProfile} />}
 
         {isWalletModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#03050a]/90 backdrop-blur-md animate-[fadeIn_0.2s_ease-out]">
             <div className="w-full max-w-sm premium-card rounded-3xl p-6 relative shadow-[0_0_50px_rgba(59,130,246,0.2)]">
-              <button onClick={()=>setIsWalletModalOpen(false)} className="absolute top-4 right-4 text-slate-500 hover:text-white hover:scale-110 transition-transform"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
+              <button onClick={() => setIsWalletModalOpen(false)} className="absolute top-4 right-4 text-slate-500 hover:text-white hover:scale-110 transition-transform"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
               <h3 className="text-xl font-bold mb-6">Select Provider</h3>
               <div className="space-y-3">
-                <button onClick={()=>connectWallet('albedo')} className="w-full bg-[#0f1524] border border-white/5 p-4 rounded-xl flex items-center gap-4 group hover:border-blue-500/50 active:scale-95 transition-all">
+                <button onClick={() => connectWallet('albedo')} className="w-full bg-[#0f1524] border border-white/5 p-4 rounded-xl flex items-center gap-4 group hover:border-blue-500/50 active:scale-95 transition-all">
                   <div className="w-12 h-12 rounded-full bg-[#1e293b] flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner">
-                    <svg className="w-6 h-6 text-blue-400 group-hover:text-blue-300 transition-colors" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L1 21h22L12 2zm0 3.83L19.5 19h-15L12 5.83z"/></svg>
+                    <svg className="w-6 h-6 text-blue-400 group-hover:text-blue-300 transition-colors" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L1 21h22L12 2zm0 3.83L19.5 19h-15L12 5.83z" /></svg>
                   </div>
                   <p className="font-bold text-lg">Albedo</p>
                 </button>
-                <button onClick={()=>connectWallet('freighter')} className="w-full bg-[#0f1524] border border-white/5 p-4 rounded-xl flex items-center gap-4 group hover:border-blue-500/50 active:scale-95 transition-all">
+                <button onClick={() => connectWallet('freighter')} className="w-full bg-[#0f1524] border border-white/5 p-4 rounded-xl flex items-center gap-4 group hover:border-blue-500/50 active:scale-95 transition-all">
                   <div className="w-12 h-12 rounded-full bg-[#1e293b] flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner">
                     <svg className="w-6 h-6 text-slate-300 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
                   </div>
@@ -1095,18 +1138,18 @@ function MainApp() {
               <h3 className="text-xl font-bold mb-4">Disconnect Wallet?</h3>
               <div className="flex gap-4">
                 <button onClick={() => setIsLogoutModalOpen(false)} className="flex-1 py-3 rounded-xl font-bold bg-slate-800/80 hover:bg-slate-700 transition-all active:scale-95 border border-white/5">Cancel</button>
-                <button onClick={() => { 
-                  sessionStorage.removeItem('splitx_wallet_address'); 
-                  sessionStorage.removeItem('splitx_full_key'); 
-                  sessionStorage.removeItem('splitx_wallet_provider'); 
-                  setConnectedWallet(null); setIsLogoutModalOpen(false); 
+                <button onClick={() => {
+                  sessionStorage.removeItem('splitchain_wallet_address');
+                  sessionStorage.removeItem('splitchain_full_key');
+                  sessionStorage.removeItem('splitchain_wallet_provider');
+                  setConnectedWallet(null); setIsLogoutModalOpen(false);
                 }} className="flex-1 py-3 rounded-xl font-bold bg-red-600 hover:bg-red-500 shadow-[0_0_20px_rgba(239,68,68,0.4)] transition-all active:scale-95">Disconnect</button>
               </div>
             </div>
           </div>
         )}
-        
-        <ProfileModal isOpen={isProfileModalOpen} onClose={()=>setIsProfileModalOpen(false)} userProfile={userProfile} onUpdateProfile={handleProfileUpdate} onLogout={handleLogout} />
+
+        <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} userProfile={userProfile} onUpdateProfile={handleProfileUpdate} onLogout={handleLogout} />
       </div>
     </>
   );

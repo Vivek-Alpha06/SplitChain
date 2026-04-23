@@ -1,0 +1,1 @@
+C:\Users\vivek\OneDrive\Desktop\SplitChain-Final\ -\ Copy\contracts\SplitChain_escrow\target\wasm32-unknown-unknown\release\splitchain_escrow.wasm: C:\Users\vivek\OneDrive\Desktop\SplitChain-Final\ -\ Copy\contracts\SplitChain_escrow\src\lib.rs

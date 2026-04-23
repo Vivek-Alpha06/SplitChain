@@ -1,7 +1,7 @@
-# SplitX 🌐💸
+# SplitChain 🌐💸
 **A Decentralized Web3 Bill Splitting Application built on the Stellar Blockchain!** 
 
-SplitX allows you to split bills, share expenses and settle payments trustlessly through Soroban Smart Contracts.
+SplitChain allows you to split bills, share expenses and settle payments trustlessly through Soroban Smart Contracts.
 
 ---
 
