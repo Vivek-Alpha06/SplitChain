@@ -75,7 +75,7 @@ Here are some pictures of the application in action:
 ### Mobile Responsive View
 ![Mobile](screenshot/phone_support.png)
 
-*** For more screenshot check out screenshot out folder ***
+*** For more screenshot check out screenshot folder ***
 
 
 ---
