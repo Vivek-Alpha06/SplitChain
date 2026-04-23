@@ -100,6 +100,13 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for full system design.
 ### You can also give feedback(https://docs.google.com/forms/d/e/1FAIpQLScnOGWNPACmkkS-cTpr_IesBMRGntLLBYkIXqzz7M3O60Im8Q/viewform?usp=header).
 
 
+## CI/CD
+This project uses GitHub Actions for automated deployment to Vercel.
+Every push to main triggers a build and deploy.
+
+
+
+
 ## Tech Stack
 - Frontend: React (via SystemJS CDN)
 - Smart Contract: Soroban (Rust) on Stellar Testnet
