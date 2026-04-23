@@ -6,7 +6,11 @@ const { useState, useEffect, useRef } = React;
 const SOROBAN_CONTRACT_ID = 'CAXE4NUE3NXTKLOWOW5EXUTFL22LUKAFYG6RFKWOYFSRKVYGJHYYQSW5';
 
 // ==========================================
-// 2. FIREBASE CONFIGURATION (SAFE LOAD)
+// // 2. FIREBASE CONFIGURATION
+// Note: Firebase client keys are intentionally public per Firebase documentation.
+// Security is enforced via Firebase Security Rules in the Firebase Console.
+// Project was originally named "splitx-web3" during development, now rebranded to SplitChain.
+// The Firebase project name in config below reflects the original dev project ID.
 // ==========================================
 const firebaseConfig = {
   apiKey: "AIzaSyByP5iZGDCbkjyL9p_Idjmoz6T8EZKlX8c",
