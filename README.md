@@ -80,9 +80,6 @@ Here are some pictures of the application in action:
 
 ---
 
-## Architecture
-See [ARCHITECTURE.md](ARCHITECTURE.md) for full system design.
-
 
 ## 5+ User Wallet Addresses (Verified on Stellar Testnet)
 | User | Stellar Address |
